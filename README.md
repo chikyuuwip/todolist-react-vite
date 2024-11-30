@@ -14,10 +14,12 @@ A simple todo application built with React, Vite, and TypeScript.
    git clone https://github.com/your-username/todo-app.git
    cd todo-app
 2. Install dependencies:
+   ```bash
    npm install
-3. Run the development server:
+4. Run the development server:
+   ```bash
    npm run dev
-4. Open the app in your browser at http://localhost:3000.
+6. Open the app in your browser at http://localhost:3000.
 
 ## Technologies Used
 - React
