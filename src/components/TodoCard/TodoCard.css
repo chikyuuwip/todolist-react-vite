@@ -1,0 +1,15 @@
+@keyframes popperGrow {
+    0% {
+      transform: scale(0);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  
+  .popperAnimation {
+    animation: popperGrow 0.15s ease-in-out;
+  }
+  
