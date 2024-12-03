@@ -1,5 +1,5 @@
 import React from "react";
-import { Filter } from "../interface";
+import { Filter } from "../../data/todo";
 import { Box, Typography } from "@mui/material";
 
 interface FiltersProps {

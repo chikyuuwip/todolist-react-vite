@@ -1,4 +1,4 @@
-import React, { useReducer, useState } from "react";
+import React, { useReducer } from "react";
 import {
   Box,
   Button,
@@ -15,23 +15,18 @@ import StickyNote2OutlinedIcon from "@mui/icons-material/StickyNote2Outlined";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
-import "./TodoCard.css";
 import Filters from "../Filter/Filters";
-import { Filter } from "../interface";
-import { ActionType, initialState, todoReducer } from "../../store/reducer";
+import { AnchorEl, Filter, TodoModel } from "../../data/todo";
+import { ActionType, initialState, todoReducer } from "../../hooks/reducer";
+import "./TodoCard.css";
 
-const Todo = () => {
+const TodoCard = () => {
   const [state, dispatch] = useReducer(todoReducer, initialState);
 
-  const [selectedFilter, setSelectedFilter] = useState(Filter.All);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
-  const [editingTask, setEditingTask] = useState<string | null>(null);
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const { todoList } = state;
+  const { todoList, editingTodo, anchorEl, filter } = state;
 
   const handleFilterChange = (filter: Filter) => {
-    setSelectedFilter(filter);
+    dispatch({ type: ActionType.SET_FILTER, payload: filter });
   };
 
   const createNewTodo = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -42,74 +37,64 @@ const Todo = () => {
       if (taskName) {
         dispatch({
           type: ActionType.ADD_TODO,
-          payload: { taskName, isSuccessful: false },
+          payload: {
+            taskID: new Date().getTime(),
+            taskName,
+            isSuccessful: false,
+          },
         });
         inputElement.value = "";
       }
-    }
-  };
 
-  const updateStatus = (index: number) => {
-    if (editingIndex == index) {
-      return;
+      console.log(...todoList);
     }
-    dispatch({
-      type: ActionType.TOGGLE_TODO,
-      payload: index,
-    });
-  };
-
-  const deleteTodo = (index: number) => {
-    dispatch({ type: ActionType.DELETE_TODO, payload: index });
-    setAnchorEl(null);
-    setActiveIndex(null);
   };
 
   const clearAllTodo = () => {
-    setAnchorEl(null);
-    setActiveIndex(null);
     dispatch({ type: ActionType.CLEAR_TODO });
   };
 
-  const handleEllipsisClick = (
-    event: React.MouseEvent<HTMLElement>,
-    index: number
+  const updateTodo = (todo: TodoModel) => {
+    dispatch({
+      type: ActionType.UPDATE_TODO,
+      payload: todo,
+    });
+  };
+
+  const deleteTodo = (todo: TodoModel) => {
+    dispatch({ type: ActionType.DELETE_TODO, payload: todo });
+    dispatch({ type: ActionType.SET_ANCHOREL, payload: null });
+  };
+
+  const SetEditClick = (todo: TodoModel) => {
+    dispatch({ type: ActionType.SET_EDITING_TODO, payload: todo });
+  };
+
+  const handleEditSubmit = (
+    event: React.KeyboardEvent<HTMLDivElement | HTMLInputElement>,
+    todo: TodoModel
   ) => {
-    if (anchorEl && activeIndex === index) {
-      setAnchorEl(null);
-      setActiveIndex(null);
+    if (event.key === "Enter" && editingTodo !== null) {
+      updateTodo({ ...todo, taskName: editingTodo.taskName });
+      dispatch({ type: ActionType.SET_EDITING_TODO, payload: null });
+    }
+  };
+
+  const handleEllipsisClick = (anc: AnchorEl) => {
+    if (anchorEl?.anchorActiveID === anc.anchorActiveID) {
+      dispatch({ type: ActionType.SET_ANCHOREL, payload: null });
     } else {
-      setAnchorEl(event.currentTarget);
-      setActiveIndex(index);
+      dispatch({ type: ActionType.SET_ANCHOREL, payload: anc });
     }
   };
 
-  const open = Boolean(anchorEl && activeIndex !== null);
+  const filteredTodoList = todoList.filter((todo: TodoModel) => {
+    if (filter === Filter.All) return true;
+    if (filter === Filter.Pending) return !todo.isSuccessful;
+    return todo.isSuccessful;
+  });
 
-  const handleEditClick = (index: number) => {
-    setEditingTask(todoList[index].taskName);
-    setEditingIndex(index);
-  };
-
-  const handleEditChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setEditingTask(event.target.value);
-  };
-
-  const handleEditSubmit = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (
-      event.key === "Enter" &&
-      editingTask !== null &&
-      editingIndex !== null
-    ) {
-      setTodoList((prevItems) =>
-        prevItems.map((todo, i) =>
-          i === editingIndex ? { ...todo, taskName: editingTask } : todo
-        )
-      );
-      setEditingTask(null);
-      setEditingIndex(null);
-    }
-  };
+  const open = Boolean(anchorEl);
 
   return (
     <Card
@@ -153,10 +138,7 @@ const Todo = () => {
         id="todo-actions"
       >
         <Box sx={{ display: "flex", flexDirection: "row" }} id="filter-box">
-          <Filters
-            selectedFilter={selectedFilter}
-            onChange={handleFilterChange}
-          />
+          <Filters selectedFilter={filter} onChange={handleFilterChange} />
         </Box>
         <Button
           variant="contained"
@@ -177,14 +159,14 @@ const Todo = () => {
         sx={{ p: 0, "&:last-child": { p: 0 } }}
         id="todo-list-content"
       >
-        {todoList.length === 0 && (
+        {filteredTodoList.length === 0 && (
           <Typography sx={{ textAlign: "left", pt: 2 }} id="empty-task-message">
             You don't have any task here
           </Typography>
         )}
-        {todoList.map((todo, index) => (
+        {filteredTodoList.map((todo, index) => (
           <Box
-            key={index}
+            key={todo.taskID}
             sx={{
               display: "flex",
               px: 0,
@@ -193,7 +175,7 @@ const Todo = () => {
               alignItems: "center",
               borderTop: index > 0 ? "1px solid #B0B0B0" : "",
             }}
-            id={`todo-item-${index}`}
+            id={`todo-item-${todo.taskID}`}
           >
             <Box
               sx={{
@@ -201,25 +183,30 @@ const Todo = () => {
                 textAlign: "left",
                 alignItems: "center",
               }}
-              onClick={() => updateStatus(index)}
-              id={`todo-checkbox-${index}`}
+              onClick={() =>
+                updateTodo({ ...todo, isSuccessful: !todo.isSuccessful })
+              }
+              id={`todo-checkbox-${todo.taskID}`}
             >
               <Checkbox
                 size="small"
                 color="error"
                 sx={{ pl: 0 }}
                 checked={todo.isSuccessful}
-                id={`todo-checkbox-input-${index}`}
-                disabled={editingIndex === index}
+                id={`todo-checkbox-input-${todo.taskID}`}
+                disabled={editingTodo?.taskID === todo.taskID}
               />
-              {editingIndex === index ? (
+              {editingTodo?.taskID === todo.taskID ? (
                 <TextField
-                  value={editingTask || ""}
+                  value={editingTodo.taskName || ""}
                   color="error"
-                  onChange={handleEditChange}
-                  onKeyUp={handleEditSubmit}
+                  onChange={(e) => {
+                    const updatedTodo = { ...todo, taskName: e.target.value };
+                    SetEditClick(updatedTodo);
+                  }}
+                  onKeyUp={(event) => handleEditSubmit(event, todo)}
                   autoFocus
-                  id={`edit-todo-text-${index}`}
+                  id={`edit-todo-text-${todo.taskID}`}
                 />
               ) : (
                 <Typography
@@ -228,7 +215,7 @@ const Todo = () => {
                     userSelect: "none",
                     textOverflow: "ellipsis",
                   }}
-                  id={`todo-text-${index}`}
+                  id={`todo-text-${todo.taskID}`}
                 >
                   {todo.taskName.length < 25
                     ? todo.taskName
@@ -239,14 +226,20 @@ const Todo = () => {
             <MoreHorizIcon
               fontSize="small"
               sx={{ cursor: "pointer" }}
-              onClick={(event) => handleEllipsisClick(event, index)}
-              id={`more-icon-${index}`}
+              onClick={(event) => {
+                const anchor: AnchorEl = {
+                  anchorEl: event.currentTarget,
+                  anchorActiveID: todo.taskID,
+                };
+                handleEllipsisClick(anchor);
+              }}
+              id={`more-icon-${todo.taskID}`}
             />
-            {activeIndex === index && (
+            {anchorEl?.anchorActiveID === todo.taskID && (
               <Popper
-                id={`todo-popper-${index}`} // added id to popper
+                id={`todo-popper-${todo.taskID}`}
                 open={open}
-                anchorEl={anchorEl}
+                anchorEl={anchorEl.anchorEl}
                 placement="bottom-end"
               >
                 <Box
@@ -259,7 +252,7 @@ const Todo = () => {
                     borderRadius: "5px",
                     boxShadow: 2,
                   }}
-                  id={`edit-delete-box-${index}`}
+                  id={`edit-delete-box-${todo.taskID}`}
                 >
                   <Box
                     sx={{
@@ -271,11 +264,13 @@ const Todo = () => {
                         backgroundColor: "#E8E8E8",
                       },
                     }}
-                    onClick={() => handleEditClick(index)}
-                    id={`edit-box-${index}`}
+                    onClick={() => SetEditClick(todo)}
+                    id={`edit-box-${todo.taskID}`}
                   >
                     <EditOutlinedIcon fontSize="small" sx={{ mr: 1 }} />
-                    <Typography id={`edit-text-${index}`}>Edit</Typography>
+                    <Typography id={`edit-text-${todo.taskID}`}>
+                      Edit
+                    </Typography>
                   </Box>
                   <Box
                     sx={{
@@ -287,14 +282,16 @@ const Todo = () => {
                         backgroundColor: "#E8E8E8",
                       },
                     }}
-                    onClick={() => deleteTodo(index)}
-                    id={`delete-box-${index}`}
+                    onClick={() => deleteTodo(todo)}
+                    id={`delete-box-${todo.taskID}`}
                   >
                     <DeleteOutlineOutlinedIcon
                       fontSize="small"
                       sx={{ mr: 1 }}
                     />
-                    <Typography id={`delete-text-${index}`}>Delete</Typography>
+                    <Typography id={`delete-text-${todo.taskID}`}>
+                      Delete
+                    </Typography>
                   </Box>
                 </Box>
               </Popper>
@@ -306,4 +303,4 @@ const Todo = () => {
   );
 };
 
-export default Todo;
+export default TodoCard;

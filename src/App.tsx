@@ -4,11 +4,9 @@ import Box from "@mui/material/Box";
 
 function App() {
   return (
-    <>
-      <Box sx={{ width: 400, height: 500 }}>
-        <TodoCard></TodoCard>
-      </Box>
-    </>
+    <Box sx={{ width: 400, height: 500 }}>
+      <TodoCard></TodoCard>
+    </Box>
   );
 }
 
